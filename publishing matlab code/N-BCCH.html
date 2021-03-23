@@ -1,0 +1,684 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>N-BCCH</title><meta name="generator" content="MATLAB 9.1"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2021-01-12"><meta name="DC.source" content="N-BCCH.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Generating a message of random numbers (0,1)</a></li><li><a href="#3">calculation of CRC by polynomial 16 12 5 1</a></li><li><a href="#4">Convolutional encoding</a></li><li><a href="#5">Puncturing 45820-d10 -&gt; page 137</a></li><li><a href="#6">Interleaving:</a></li><li><a href="#7">Modulator</a></li><li><a href="#8">Adding noise</a></li><li><a href="#9">Receiver</a></li><li><a href="#10">Decoding</a></li><li><a href="#11">Check CRC</a></li><li><a href="#12">Plots</a></li><li><a href="#13">Checking results</a></li><li><a href="#14">clear</a></li></ul></div><pre class="codeinput"><span class="comment">% https://portal.3gpp.org/desktopmodules/Specifications/SpecificationDetails.aspx?specificationId=2719</span>
+<span class="comment">%</span>
+<span class="comment">% Description of physical layer parameters on the page 136 in 45820-d10.doc</span>
+<span class="comment">%</span>
+<span class="comment">% https://b.gorelkin.me/documents/N-BCCH/45820-d10.doc</span>
+<span class="comment">% https://b.gorelkin.me/documents/N-BCCH/36212-f40.docx</span>
+<span class="comment">%======================================================================================</span>
+<span class="comment">%| Payload = 152;        | &#1044;&#1083;&#1080;&#1085;&#1072; &#1084;&#1072;&#1089;&#1089;&#1080;&#1074;&#1072; (&#1055;&#1086;&#1083;&#1077;&#1079;&#1085;&#1072;&#1103; &#1085;&#1072;&#1075;&#1088;&#1091;&#1079;&#1082;&#1072;)                           |</span>
+<span class="comment">%| CRC = 18;             | &#1050;&#1086;&#1085;&#1090;&#1088;&#1086;&#1083;&#1100;&#1085;&#1072;&#1103; &#1089;&#1091;&#1084;&#1084;&#1072; 36212-f40-&gt; &#1088;&#1072;&#1079;&#1076;&#1077;&#1083; 5.1.1 "CRC calculation"|</span>
+<span class="comment">%| TailBits = 6;         | &#1047;&#1072;&#1097;&#1080;&#1090;&#1085;&#1099;&#1081; &#1080;&#1085;&#1090;&#1077;&#1088;&#1074;&#1072;&#1083; (&#1079;&#1072;&#1097;&#1080;&#1090;&#1072; &#1086;&#1090; &#1084;&#1077;&#1078;&#1089;&#1080;&#1084;&#1074;&#1086;&#1083;&#1100;&#1085;&#1086;&#1081; &#1080;&#1085;&#1090;&#1077;&#1088;&#1092;&#1077;&#1088;&#1077;&#1085;&#1094;&#1080;&#1080;)   |</span>
+<span class="comment">%| N = Payload + CRC;    | &#1048;&#1090;&#1086;&#1075;&#1086;&#1074;&#1072;&#1103; &#1076;&#1083;&#1080;&#1085;&#1072; &#1084;&#1072;&#1089;&#1089;&#1080;&#1074;&#1072;                                      |</span>
+<span class="comment">%| BIT=randi([0 1],1,N); | &#1055;&#1077;&#1088;&#1077;&#1076;&#1072;&#1074;&#1072;&#1077;&#1084;&#1099;&#1077; &#1076;&#1072;&#1085;&#1085;&#1099;&#1077;                                         |</span>
+<span class="comment">%| CP = 20;              | &#1044;&#1083;&#1080;&#1085;&#1072; &#1094;&#1080;&#1082;&#1083;&#1083;&#1080;&#1095;&#1077;&#1089;&#1082;&#1086;&#1075;&#1086; &#1087;&#1088;&#1077;&#1092;&#1080;&#1082;&#1089;&#1072;                                |</span>
+<span class="comment">%=======================================================================================</span>
+<span class="comment">%=======================================================================================</span>
+<span class="comment">%| Payload = 152;        | Array length, (informational message)                       |</span>
+<span class="comment">%| CRC = 18;             | Check sum 36212-f40-&gt; Section 5.1.1 "CRC calculation"       |</span>
+<span class="comment">%| TailBits = 6;         | Guard interval (ISI protection - InterSymbol Interference)  |</span>
+<span class="comment">%| N = Payload + CRC;    | &#1048;&#1090;&#1086;&#1075;&#1086;&#1074;&#1072;&#1103; &#1076;&#1083;&#1080;&#1085;&#1072; &#1084;&#1072;&#1089;&#1089;&#1080;&#1074;&#1072;                                      |</span>
+<span class="comment">%| BIT=randi([0 1],1,N); | &#1055;&#1077;&#1088;&#1077;&#1076;&#1072;&#1074;&#1072;&#1077;&#1084;&#1099;&#1077; &#1076;&#1072;&#1085;&#1085;&#1099;&#1077;                                         |</span>
+<span class="comment">%| CP = 20;              | Cyclic prefix length                                        |</span>
+<span class="comment">%=======================================================================================</span>
+
+clc
+clear <span class="string">all</span>
+close <span class="string">all</span>
+</pre><h2 id="2">Generating a message of random numbers (0,1)</h2><pre class="codeinput">Payload = 152;
+msg = randi([0 1], 1, Payload);
+</pre><h2 id="3">calculation of CRC by polynomial 16 12 5 1</h2><p>Check sum 36212-f40-&gt; Section 5.1.1 "CRC calculation"</p><pre class="codeinput">Crc_ui16LookupTable=[0,4129,8258,12387,16516,20645,24774,28903,33032,37161,41290,45419,49548,<span class="keyword">...</span>
+    53677,57806,61935,4657,528,12915,8786,21173,17044,29431,25302,37689,33560,45947,41818,54205,<span class="keyword">...</span>
+    50076,62463,58334,9314,13379,1056,5121,25830,29895,17572,21637,42346,46411,34088,38153,58862,<span class="keyword">...</span>
+    62927,50604,54669,13907,9842,5649,1584,30423,26358,22165,18100,46939,42874,38681,34616,63455,<span class="keyword">...</span>
+    59390,55197,51132,18628,22757,26758,30887,2112,6241,10242,14371,51660,55789,59790,63919,35144,<span class="keyword">...</span>
+    39273,43274,47403,23285,19156,31415,27286,6769,2640,14899,10770,56317,52188,64447,60318,39801,<span class="keyword">...</span>
+    35672,47931,43802,27814,31879,19684,23749,11298,15363,3168,7233,60846,64911,52716,56781,44330,<span class="keyword">...</span>
+    48395,36200,40265,32407,28342,24277,20212,15891,11826,7761,3696,65439,61374,57309,53244,48923,<span class="keyword">...</span>
+    44858,40793,36728,37256,33193,45514,41451,53516,49453,61774,57711,4224,161,12482,8419,20484,<span class="keyword">...</span>
+    16421,28742,24679,33721,37784,41979,46042,49981,54044,58239,62302,689,4752,8947,13010,16949,<span class="keyword">...</span>
+    21012,25207,29270,46570,42443,38312,34185,62830,58703,54572,50445,13538,9411,5280,1153,29798,<span class="keyword">...</span>
+    25671,21540,17413,42971,47098,34713,38840,59231,63358,50973,55100,9939,14066,1681,5808,26199,<span class="keyword">...</span>
+    30326,17941,22068,55628,51565,63758,59695,39368,35305,47498,43435,22596,18533,30726,26663,6336,<span class="keyword">...</span>
+    2273,14466,10403,52093,56156,60223,64286,35833,39896,43963,48026,19061,23124,27191,31254,2801,6864,<span class="keyword">...</span>
+    10931,14994,64814,60687,56684,52557,48554,44427,40424,36297,31782,27655,23652,19525,15522,11395,<span class="keyword">...</span>
+    7392,3265,61215,65342,53085,57212,44955,49082,36825,40952,28183,32310,20053,24180,11923,16050,3793,7920];
+
+ui16RetCRC16 = hex2dec(<span class="string">'FFFF'</span>);
+<span class="keyword">for</span> i=1:length(msg)
+    ui8LookupTableIndex = bitxor(msg(i),uint8(bitshift(ui16RetCRC16,-8)));
+    ui16RetCRC16 = bitxor(Crc_ui16LookupTable(double(ui8LookupTableIndex)+1),mod(bitshift(ui16RetCRC16,8),65536));
+<span class="keyword">end</span>
+
+<span class="comment">%crc=dec2hex(ui16RetCRC16);</span>
+<span class="comment">%b = dec2bin(ui16RetCRC16);</span>
+CRCshort = double((dec2bin(ui16RetCRC16))-48); <span class="comment">%CRC can be shorter, so we make an array of zeros</span>
+z = zeros(1,16);
+<span class="keyword">for</span> i = 1 : length(z)
+    <span class="keyword">if</span> length(CRCshort)&lt;16
+        CRC = [z(1:(end-length(CRCshort))),CRCshort(1:end)]
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> length(CRCshort)==16
+        CRC = [CRCshort(1:end)]
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+clear <span class="string">ui8LookupTableIndex</span>
+clear <span class="string">ui16RetCRC16</span>
+clear <span class="string">Crc_ui16LookupTable</span>
+clear <span class="string">CRCshort</span>
+clear <span class="string">z</span>
+
+TailBits = 8; <span class="comment">%&#1074; 3gpp &#1079;&#1072;&#1097;&#1080;&#1090;&#1085;&#1099;&#1081; &#1080;&#1085;&#1090;&#1077;&#1088;&#1074;&#1072;&#1083; 6 &#1072; crc = 18 %&#1047;&#1072;&#1097;&#1080;&#1090;&#1085;&#1099;&#1081; &#1080;&#1085;&#1090;&#1077;&#1088;&#1074;&#1072;&#1083;</span>
+
+BIT = [msg(1:end),CRC(1:end)];
+CP = 20;
+</pre><h2 id="4">Convolutional encoding</h2><p>encoded with the 1/3 rate convolutional mother code defined by the polynomials: G4 = 1 + D2 + D3 + D5 + D6 G5 = 1 + D + D4 + D6 G6 = 1 + D + D2 + D3 + D4 + D6</p><p>This results in a block of 528 coded bits: {C(0),C(1),...,C(527)} defined by: C(3k) = u(k) + u(k 2) + u(k 3) + u(k 5) + u(k 6) C(3k+1) = u(k) + u(k 1) + u(k 4) + u(k 6) C(3k+2) = u(k) + u(k 1) + u(k 2) + u(k 3) + u(k 4) + u(k 6) for k = 0,1,...,175 u(k) = 0 for k &lt; 0</p><pre class="codeinput">trel = poly2trellis(7,[171 133 165]); <span class="comment">% Encoding lattice</span>
+tblen = TailBits; <span class="comment">% Depth of viewing when decoding</span>
+zero = zeros(1,tblen);
+BITunited = [BIT,zero];<span class="comment">% an array of length tblen was added to the BIT sequence so that no bits are cut off during decoding</span>
+codeBIT = convenc(BITunited,trel);  <span class="comment">% Since the rate of the convolutional encoder 1/3 at the output of the message is increased by 3 times (Overcoding)</span>
+</pre><h2 id="5">Puncturing 45820-d10 -&gt; page 137</h2><p>The code is punctured in such a way that the following 80 coded bits C(23+5j) for j = 0,1,...,79 are not transmitted.</p><pre class="codeinput">Jpuncturing=1:80;
+C=23+5*Jpuncturing;
+codeBIT_punct = codeBIT;
+codeBIT_punct (C)=[];
+
+<span class="comment">% The result is a block of 448 coded and punctured bits, P(0)...P(447).</span>
+</pre><h2 id="6">Interleaving:</h2><p>The encoded bits are interleaved over 16 N-BCCH bursts as per the below interleaving scheme.</p><pre class="codeinput"><span class="comment">%for (k= 0 to 447)</span>
+<span class="comment">% {</span>
+<span class="comment">%    B=mod(12*k+floor(k/2)+mod(k,2),16);</span>
+<span class="comment">%     j=mod(23*mod(5*k,28)+ floor(7*k/16),28);</span>
+<span class="comment">% }</span>
+
+zer16x28 = zeros(16,28);
+<span class="keyword">for</span> k = 1:448;
+ B=mod(12*(k-1)+floor((k-1)/2)+mod((k-1),2),16);
+ j=mod(23*mod(5*(k-1),28)+ floor(7*(k-1)/16),28);
+ B=B+1;
+ j=j+1;
+inter(B,j)= codeBIT_punct(k); <span class="comment">%Matrix Bxj for interleaving</span>
+<span class="keyword">end</span>
+Interleaving = reshape (inter', 1,448);
+y = Interleaving;
+</pre><h2 id="7">Modulator</h2><pre class="codeinput"><span class="keyword">for</span> i = 1 : length(y) / 2
+
+    <span class="keyword">if</span> y(2*(i-1)+1)==1 &amp;&amp; y(2*i)==1
+        outmod(i)=0.707+1i*0.707;
+    <span class="keyword">end</span>
+
+    <span class="keyword">if</span> y(2*(i-1)+1)==1 &amp;&amp; y(2*i)==0
+        outmod(i)=-0.707+1i*0.707;
+    <span class="keyword">end</span>
+
+    <span class="keyword">if</span> y(2*(i-1)+1)==0 &amp;&amp; y(2*i)==0
+        outmod(i)=-0.707-1i*0.707;
+    <span class="keyword">end</span>
+
+    <span class="keyword">if</span> y(2*(i-1)+1)==0 &amp;&amp; y(2*i)==1
+        outmod(i)=0.707-1i*0.707;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="comment">% Guard interval length (left and right) Zint = Total symbol duration minus useful symbol duration (1/4, 1/8, 1/16, or 1/32 of the OFDM symbol duration)</span>
+SpecOFDM = [zeros(1,TailBits), outmod(1:length(outmod)/2),0,outmod(length(outmod)/2+1:end), zeros(1,TailBits)];
+<span class="comment">%____inverse fourier transform____%</span>
+OPF = ifft(SpecOFDM);
+TimeFFT = OPF;
+<span class="comment">%____Adding a cyclic prefix____%</span>
+Z = TimeFFT((length(TimeFFT)-CP+1):end);
+o = [Z(1:end)  TimeFFT];
+</pre><h2 id="8">Adding noise</h2><pre class="codeinput">SNR = 5;
+Noise=awgn(o,SNR,<span class="string">'measured'</span>); <span class="comment">% awgn(&#1052;&#1072;&#1089;&#1089;&#1080;&#1074;, &#1074;&#1077;&#1083;&#1080;&#1095;&#1080;&#1085;&#1072; SNR, '&#1089;&#1095;&#1080;&#1090;&#1072;&#1077;&#1090; &#1089;&#1072;&#1084; &#1087;&#1086; &#1084;&#1086;&#1097;&#1085;&#1086;&#1089;&#1090;&#1080; &#1089;&#1080;&#1075;&#1085;&#1072;&#1083;&#1072;')</span>
+<span class="comment">%ncodeBIT = rem(codeBIT + randerr(200,1,[0 1;.95 .05]),2); %awgn (&#1074;&#1079;&#1103;&#1090;&#1100; &#1080;&#1079; &#1075;&#1091;&#1075;&#1083;&#1072;)&#1044;&#1086;&#1073;&#1072;&#1074;&#1083;&#1103;&#1102; &#1096;&#1091;&#1084;</span>
+</pre><h2 id="9">Receiver</h2><pre class="codeinput"><span class="comment">%____Remove cyclic prefix</span>
+Z1 = Noise((CP+1):length(Noise));
+<span class="comment">%___Fourier Transform</span>
+TimeFFT = fft(Z1);
+<span class="comment">%___Removing the guard interval</span>
+SpecOFDM1 = [TimeFFT(TailBits+1:length(TimeFFT)/2),TimeFFT(length(TimeFFT)/2+1:end-TailBits)];
+
+<span class="comment">%___Demodulator</span>
+<span class="keyword">for</span> i = 1 : length(SpecOFDM1)
+    <span class="keyword">if</span> real(SpecOFDM1(i))&gt;0 &amp;&amp; imag(SpecOFDM1(i))&gt;0
+        outdemod((i-1)*2+1)=1
+        outdemod(2*i)=1;
+    <span class="keyword">end</span>
+
+    <span class="keyword">if</span> real(SpecOFDM1(i))&lt;0 &amp;&amp; imag(SpecOFDM1(i))&gt;0
+        outdemod((i-1)*2+1)=1
+        outdemod(2*i)=0;
+    <span class="keyword">end</span>
+
+     <span class="keyword">if</span> real(SpecOFDM1(i))&lt;0 &amp;&amp; imag(SpecOFDM1(i))&lt;0
+        outdemod((i-1)*2+1)=0
+        outdemod(2*i)=0;
+     <span class="keyword">end</span>
+
+    <span class="keyword">if</span> real(SpecOFDM1(i))&gt;0 &amp;&amp; imag(SpecOFDM1(i))&lt;0
+        outdemod((i-1)*2+1)=0
+        outdemod(2*i)=1;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><h2 id="10">Decoding</h2><pre class="codeinput">DEInterleaving = reshape (outdemod', 28,16);
+DEInterleaving = DEInterleaving';
+<span class="keyword">for</span> k = 1:448;
+ B=mod(12*(k-1)+floor((k-1)/2)+mod((k-1),2),16);
+ j=mod(23*mod(5*(k-1),28)+ floor(7*(k-1)/16),28);
+ B=B+1;
+ j=j+1;
+decodeBIT2(k)= DEInterleaving(B,j);
+<span class="keyword">end</span>
+
+<span class="comment">% sravnivaniePEREMEZ(1,:) = [decodeBIT2(1:end)];     %&#1057;&#1088;&#1072;&#1074;&#1085;&#1080;&#1074;&#1072;&#1102; &#1087;&#1088;&#1080;&#1085;&#1103;&#1090;&#1086;&#1077; &#1080; &#1076;&#1077;&#1087;&#1077;&#1088;&#1077;&#1084;&#1077;&#1096;&#1072;&#1085;&#1085;&#1086;&#1077;</span>
+<span class="comment">% sravnivaniePEREMEZ(2,:) = [codeBIT_punct(1:end)];  %&#1057; &#1087;&#1077;&#1088;&#1077;&#1076;&#1072;&#1074;&#1072;&#1077;&#1084;&#1099;&#1084;&#1080; &#1087;&#1086;&#1089;&#1083;&#1077; &#1089;&#1074;&#1077;&#1088;&#1090;&#1086;&#1095;&#1085;&#1080;&#1082;&#1072; &#1080; &#1074;&#1099;&#1082;&#1072;&#1083;&#1099;&#1074;&#1072;&#1085;&#1080;&#1103;</span>
+
+
+z = zeros(1,528);
+z1 = [decodeBIT2(1:23)]
+z2 = [decodeBIT2(344:end)]
+
+n = 24;
+<span class="keyword">for</span> i = 24:5:423
+    z(i) = decodeBIT2(n);
+    n=n+1;
+    z(i+1) = decodeBIT2(n);
+    n=n+1;
+    z(i+2) = decodeBIT2(n);
+    n=n+1;
+    z(i+3) = decodeBIT2(n);
+    n=n+1;
+<span class="keyword">end</span>
+codeBIT_DEpunct = [z1(1:end),z(24:423),z2(1:end)];
+
+<span class="comment">%____Convolutional DECODE</span>
+decodeBIT = vitdec(codeBIT_DEpunct,trel,tblen,<span class="string">'cont'</span>,<span class="string">'hard'</span>);
+</pre><h2 id="11">Check CRC</h2><pre class="codeinput">checkMSG = decodeBIT(TailBits+1:end)
+checkCRC = decodeBIT(end-15:end);
+Crc_ui16LookupTable=[0,4129,8258,12387,16516,20645,24774,28903,33032,37161,41290,45419,49548,<span class="keyword">...</span>
+    53677,57806,61935,4657,528,12915,8786,21173,17044,29431,25302,37689,33560,45947,41818,54205,<span class="keyword">...</span>
+    50076,62463,58334,9314,13379,1056,5121,25830,29895,17572,21637,42346,46411,34088,38153,58862,<span class="keyword">...</span>
+    62927,50604,54669,13907,9842,5649,1584,30423,26358,22165,18100,46939,42874,38681,34616,63455,<span class="keyword">...</span>
+    59390,55197,51132,18628,22757,26758,30887,2112,6241,10242,14371,51660,55789,59790,63919,35144,<span class="keyword">...</span>
+    39273,43274,47403,23285,19156,31415,27286,6769,2640,14899,10770,56317,52188,64447,60318,39801,<span class="keyword">...</span>
+    35672,47931,43802,27814,31879,19684,23749,11298,15363,3168,7233,60846,64911,52716,56781,44330,<span class="keyword">...</span>
+    48395,36200,40265,32407,28342,24277,20212,15891,11826,7761,3696,65439,61374,57309,53244,48923,<span class="keyword">...</span>
+    44858,40793,36728,37256,33193,45514,41451,53516,49453,61774,57711,4224,161,12482,8419,20484,<span class="keyword">...</span>
+    16421,28742,24679,33721,37784,41979,46042,49981,54044,58239,62302,689,4752,8947,13010,16949,<span class="keyword">...</span>
+    21012,25207,29270,46570,42443,38312,34185,62830,58703,54572,50445,13538,9411,5280,1153,29798,<span class="keyword">...</span>
+    25671,21540,17413,42971,47098,34713,38840,59231,63358,50973,55100,9939,14066,1681,5808,26199,<span class="keyword">...</span>
+    30326,17941,22068,55628,51565,63758,59695,39368,35305,47498,43435,22596,18533,30726,26663,6336,<span class="keyword">...</span>
+    2273,14466,10403,52093,56156,60223,64286,35833,39896,43963,48026,19061,23124,27191,31254,2801,6864,<span class="keyword">...</span>
+    10931,14994,64814,60687,56684,52557,48554,44427,40424,36297,31782,27655,23652,19525,15522,11395,<span class="keyword">...</span>
+    7392,3265,61215,65342,53085,57212,44955,49082,36825,40952,28183,32310,20053,24180,11923,16050,3793,7920];
+
+ui16RetCRC16 = hex2dec(<span class="string">'FFFF'</span>);
+<span class="keyword">for</span> i=1:length(checkMSG)
+    ui8LookupTableIndex = bitxor(checkMSG(i),uint8(bitshift(ui16RetCRC16,-8)));
+    ui16RetCRC16 = bitxor(Crc_ui16LookupTable(double(ui8LookupTableIndex)+1),mod(bitshift(ui16RetCRC16,8),65536));
+<span class="keyword">end</span>
+
+crc=dec2hex(ui16RetCRC16);<span class="comment">%hex</span>
+b = dec2bin(ui16RetCRC16);<span class="comment">%bin</span>
+checkCRCshort = double((dec2bin(ui16RetCRC16))-48);
+z = zeros(1,16);
+<span class="keyword">for</span> i = 1 : length(z)
+    <span class="keyword">if</span> length(checkCRCshort)&lt;16
+        CRCa = [z(1:(end-length(checkCRCshort))),checkCRCshort(1:end)]
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> length(checkCRCshort)==16
+        CRCa = [checkCRCshort(1:end)]
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+clear <span class="string">ui8LookupTableIndex</span>
+clear <span class="string">ui16RetCRC16</span>
+clear <span class="string">Crc_ui16LookupTable</span>
+clear <span class="string">checkCRCshort</span>
+clear <span class="string">z</span>
+</pre><h2 id="12">Plots</h2><pre class="codeinput">scatterplot(outmod);
+grid <span class="string">on</span>
+xlabel(<span class="string">'Re'</span>)
+ylabel(<span class="string">'Im'</span>)
+figure
+plot(abs(SpecOFDM));
+figure
+plot(abs(TimeFFT));
+scatterplot(SpecOFDM1);
+figure
+plot(1:length(TimeFFT),abs(TimeFFT));
+figure
+plot(outdemod);
+scatterplot(outdemod);
+</pre><img vspace="5" hspace="5" src="N-BCCH_01.png" alt=""> <img vspace="5" hspace="5" src="N-BCCH_02.png" alt=""> <img vspace="5" hspace="5" src="N-BCCH_03.png" alt=""> <img vspace="5" hspace="5" src="N-BCCH_04.png" alt=""> <img vspace="5" hspace="5" src="N-BCCH_05.png" alt=""> <img vspace="5" hspace="5" src="N-BCCH_06.png" alt=""> <img vspace="5" hspace="5" src="N-BCCH_07.png" alt=""> <h2 id="13">Checking results</h2><pre class="codeinput">a = [BITunited((1:length(decodeBIT)-TailBits))];
+b = [decodeBIT(TailBits+1:length(BITunited))];
+CheckRate = a/b;
+Check(1,:) = [BITunited((1:length(decodeBIT)-TailBits))];
+Check(2,:) = [decodeBIT(TailBits+1:length(BITunited))];
+</pre><h2 id="14">clear</h2><pre class="codeinput">clear <span class="string">ans</span>
+clear <span class="string">b</span>
+clear <span class="string">B</span>
+clear <span class="string">BIT</span>
+clear <span class="string">C</span>
+clear <span class="string">DEInterleaving</span>
+clear <span class="string">i</span>
+clear <span class="string">inter</span>
+clear <span class="string">j</span>
+clear <span class="string">Jpuncturing</span>
+clear <span class="string">k</span>
+clear <span class="string">n</span>
+clear <span class="string">Noise</span>
+clear <span class="string">o</span>
+clear <span class="string">OPF</span>
+clear <span class="string">outdemod</span>
+clear <span class="string">outmod</span>
+clear <span class="string">SpecOFDM</span>
+clear <span class="string">SpecOFDM1</span>
+clear <span class="string">y</span>
+clear <span class="string">trel</span>
+clear <span class="string">TimeFFT</span>
+clear <span class="string">z</span>
+clear <span class="string">Z</span>
+clear <span class="string">z1</span>
+clear <span class="string">Z1</span>
+clear <span class="string">z2</span>
+clear <span class="string">zer16x28</span>
+clear <span class="string">zero</span>
+clear <span class="string">tblen</span>
+clear <span class="string">checkCRCshort</span>
+<span class="comment">% clear CRCa</span>
+clear <span class="string">checkMSG</span>
+clear <span class="string">checkCRC</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+% https://portal.3gpp.org/desktopmodules/Specifications/SpecificationDetails.aspx?specificationId=2719
+%
+% Description of physical layer parameters on the page 136 in 45820-d10.doc
+%
+% https://b.gorelkin.me/documents/N-BCCH/45820-d10.doc
+% https://b.gorelkin.me/documents/N-BCCH/36212-f40.docx
+%======================================================================================
+%| Payload = 152;        | Длина массива (Полезная нагрузка)                           |
+%| CRC = 18;             | Контрольная сумма 36212-f40-> раздел 5.1.1 "CRC calculation"|
+%| TailBits = 6;         | Защитный интервал (защита от межсимвольной интерференции)   |
+%| N = Payload + CRC;    | Итоговая длина массива                                      |
+%| BIT=randi([0 1],1,N); | Передаваемые данные                                         |
+%| CP = 20;              | Длина цикллического префикса                                |
+%=======================================================================================
+%=======================================================================================
+%| Payload = 152;        | Array length, (informational message)                       |
+%| CRC = 18;             | Check sum 36212-f40-> Section 5.1.1 "CRC calculation"       |
+%| TailBits = 6;         | Guard interval (ISI protection - InterSymbol Interference)  |
+%| N = Payload + CRC;    | Итоговая длина массива                                      |
+%| BIT=randi([0 1],1,N); | Передаваемые данные                                         |
+%| CP = 20;              | Cyclic prefix length                                        |
+%=======================================================================================
+
+clc
+clear all
+close all
+%% Generating a message of random numbers (0,1)
+Payload = 152;
+msg = randi([0 1], 1, Payload);
+%% calculation of CRC by polynomial 16 12 5 1
+% Check sum 36212-f40-> Section 5.1.1 "CRC calculation"
+
+Crc_ui16LookupTable=[0,4129,8258,12387,16516,20645,24774,28903,33032,37161,41290,45419,49548,...
+    53677,57806,61935,4657,528,12915,8786,21173,17044,29431,25302,37689,33560,45947,41818,54205,...
+    50076,62463,58334,9314,13379,1056,5121,25830,29895,17572,21637,42346,46411,34088,38153,58862,...
+    62927,50604,54669,13907,9842,5649,1584,30423,26358,22165,18100,46939,42874,38681,34616,63455,...
+    59390,55197,51132,18628,22757,26758,30887,2112,6241,10242,14371,51660,55789,59790,63919,35144,...
+    39273,43274,47403,23285,19156,31415,27286,6769,2640,14899,10770,56317,52188,64447,60318,39801,...
+    35672,47931,43802,27814,31879,19684,23749,11298,15363,3168,7233,60846,64911,52716,56781,44330,...
+    48395,36200,40265,32407,28342,24277,20212,15891,11826,7761,3696,65439,61374,57309,53244,48923,...
+    44858,40793,36728,37256,33193,45514,41451,53516,49453,61774,57711,4224,161,12482,8419,20484,...
+    16421,28742,24679,33721,37784,41979,46042,49981,54044,58239,62302,689,4752,8947,13010,16949,...
+    21012,25207,29270,46570,42443,38312,34185,62830,58703,54572,50445,13538,9411,5280,1153,29798,...
+    25671,21540,17413,42971,47098,34713,38840,59231,63358,50973,55100,9939,14066,1681,5808,26199,...
+    30326,17941,22068,55628,51565,63758,59695,39368,35305,47498,43435,22596,18533,30726,26663,6336,...
+    2273,14466,10403,52093,56156,60223,64286,35833,39896,43963,48026,19061,23124,27191,31254,2801,6864,...
+    10931,14994,64814,60687,56684,52557,48554,44427,40424,36297,31782,27655,23652,19525,15522,11395,...
+    7392,3265,61215,65342,53085,57212,44955,49082,36825,40952,28183,32310,20053,24180,11923,16050,3793,7920];
+
+ui16RetCRC16 = hex2dec('FFFF');
+for i=1:length(msg)
+    ui8LookupTableIndex = bitxor(msg(i),uint8(bitshift(ui16RetCRC16,-8)));
+    ui16RetCRC16 = bitxor(Crc_ui16LookupTable(double(ui8LookupTableIndex)+1),mod(bitshift(ui16RetCRC16,8),65536));
+end
+
+%crc=dec2hex(ui16RetCRC16);
+%b = dec2bin(ui16RetCRC16);
+CRCshort = double((dec2bin(ui16RetCRC16))-48); %CRC can be shorter, so we make an array of zeros
+z = zeros(1,16);
+for i = 1 : length(z)
+    if length(CRCshort)<16
+        CRC = [z(1:(end-length(CRCshort))),CRCshort(1:end)]
+    end
+    if length(CRCshort)==16
+        CRC = [CRCshort(1:end)]
+    end
+end
+clear ui8LookupTableIndex
+clear ui16RetCRC16
+clear Crc_ui16LookupTable
+clear CRCshort
+clear z
+
+TailBits = 8; %в 3gpp защитный интервал 6 а crc = 18 %Защитный интервал
+
+BIT = [msg(1:end),CRC(1:end)];
+CP = 20;
+%% Convolutional encoding
+% encoded with the 1/3 rate convolutional mother code defined by the polynomials:
+% G4 = 1 + D2 + D3 + D5 + D6
+% G5 = 1 + D + D4 + D6
+% G6 = 1 + D + D2 + D3 + D4 + D6
+%
+% This results in a block of 528 coded bits: {C(0),C(1),...,C(527)} defined by:
+% C(3k) = u(k) + u(k 2) + u(k 3) + u(k 5) + u(k 6)
+% C(3k+1) = u(k) + u(k 1) + u(k 4) + u(k 6)
+% C(3k+2) = u(k) + u(k 1) + u(k 2) + u(k 3) + u(k 4) + u(k 6) for k = 0,1,...,175
+% u(k) = 0 for k < 0
+
+
+trel = poly2trellis(7,[171 133 165]); % Encoding lattice
+tblen = TailBits; % Depth of viewing when decoding
+zero = zeros(1,tblen);
+BITunited = [BIT,zero];% an array of length tblen was added to the BIT sequence so that no bits are cut off during decoding
+codeBIT = convenc(BITunited,trel);  % Since the rate of the convolutional encoder 1/3 at the output of the message is increased by 3 times (Overcoding)
+%% Puncturing 45820-d10 -> page 137
+% The code is punctured in such a way that the following 80 coded bits
+% C(23+5j) for j = 0,1,...,79
+% are not transmitted.
+
+Jpuncturing=1:80;
+C=23+5*Jpuncturing;
+codeBIT_punct = codeBIT;
+codeBIT_punct (C)=[];
+
+% The result is a block of 448 coded and punctured bits, P(0)...P(447).
+
+
+%% Interleaving:
+% The encoded bits are interleaved over 16 N-BCCH bursts as per the below interleaving scheme.
+%for (k= 0 to 447)
+% {
+%    B=mod(12*k+floor(k/2)+mod(k,2),16);
+%     j=mod(23*mod(5*k,28)+ floor(7*k/16),28);
+% }
+
+zer16x28 = zeros(16,28);
+for k = 1:448;
+ B=mod(12*(k-1)+floor((k-1)/2)+mod((k-1),2),16);
+ j=mod(23*mod(5*(k-1),28)+ floor(7*(k-1)/16),28);
+ B=B+1;
+ j=j+1;
+inter(B,j)= codeBIT_punct(k); %Matrix Bxj for interleaving
+end
+Interleaving = reshape (inter', 1,448);
+y = Interleaving;
+%% Modulator
+for i = 1 : length(y) / 2
+
+    if y(2*(i-1)+1)==1 && y(2*i)==1
+        outmod(i)=0.707+1i*0.707;
+    end
+
+    if y(2*(i-1)+1)==1 && y(2*i)==0
+        outmod(i)=-0.707+1i*0.707;
+    end
+
+    if y(2*(i-1)+1)==0 && y(2*i)==0
+        outmod(i)=-0.707-1i*0.707;
+    end
+
+    if y(2*(i-1)+1)==0 && y(2*i)==1
+        outmod(i)=0.707-1i*0.707;
+    end
+end
+% Guard interval length (left and right) Zint = Total symbol duration minus useful symbol duration (1/4, 1/8, 1/16, or 1/32 of the OFDM symbol duration)
+SpecOFDM = [zeros(1,TailBits), outmod(1:length(outmod)/2),0,outmod(length(outmod)/2+1:end), zeros(1,TailBits)];
+%____inverse fourier transform____%
+OPF = ifft(SpecOFDM);
+TimeFFT = OPF;
+%____Adding a cyclic prefix____%
+Z = TimeFFT((length(TimeFFT)-CP+1):end);
+o = [Z(1:end)  TimeFFT];
+%% Adding noise
+SNR = 5;
+Noise=awgn(o,SNR,'measured'); % awgn(Массив, величина SNR, 'считает сам по мощности сигнала')
+%ncodeBIT = rem(codeBIT + randerr(200,1,[0 1;.95 .05]),2); %awgn (взять из гугла)Добавляю шум
+%% Receiver
+
+%____Remove cyclic prefix
+Z1 = Noise((CP+1):length(Noise));
+%___Fourier Transform
+TimeFFT = fft(Z1);
+%___Removing the guard interval
+SpecOFDM1 = [TimeFFT(TailBits+1:length(TimeFFT)/2),TimeFFT(length(TimeFFT)/2+1:end-TailBits)];
+
+%___Demodulator
+for i = 1 : length(SpecOFDM1)
+    if real(SpecOFDM1(i))>0 && imag(SpecOFDM1(i))>0
+        outdemod((i-1)*2+1)=1
+        outdemod(2*i)=1;
+    end
+
+    if real(SpecOFDM1(i))<0 && imag(SpecOFDM1(i))>0
+        outdemod((i-1)*2+1)=1
+        outdemod(2*i)=0;
+    end
+
+     if real(SpecOFDM1(i))<0 && imag(SpecOFDM1(i))<0
+        outdemod((i-1)*2+1)=0
+        outdemod(2*i)=0;
+     end
+
+    if real(SpecOFDM1(i))>0 && imag(SpecOFDM1(i))<0
+        outdemod((i-1)*2+1)=0
+        outdemod(2*i)=1;
+    end
+end
+%% Decoding
+
+DEInterleaving = reshape (outdemod', 28,16);
+DEInterleaving = DEInterleaving';
+for k = 1:448;
+ B=mod(12*(k-1)+floor((k-1)/2)+mod((k-1),2),16);
+ j=mod(23*mod(5*(k-1),28)+ floor(7*(k-1)/16),28);
+ B=B+1;
+ j=j+1;
+decodeBIT2(k)= DEInterleaving(B,j);
+end
+
+% sravnivaniePEREMEZ(1,:) = [decodeBIT2(1:end)];     %Сравниваю принятое и деперемешанное
+% sravnivaniePEREMEZ(2,:) = [codeBIT_punct(1:end)];  %С передаваемыми после сверточника и выкалывания
+
+
+z = zeros(1,528);
+z1 = [decodeBIT2(1:23)]
+z2 = [decodeBIT2(344:end)]
+
+n = 24;
+for i = 24:5:423
+    z(i) = decodeBIT2(n);
+    n=n+1;
+    z(i+1) = decodeBIT2(n);
+    n=n+1;
+    z(i+2) = decodeBIT2(n);
+    n=n+1;
+    z(i+3) = decodeBIT2(n);
+    n=n+1;
+end
+codeBIT_DEpunct = [z1(1:end),z(24:423),z2(1:end)];
+
+%____Convolutional DECODE
+decodeBIT = vitdec(codeBIT_DEpunct,trel,tblen,'cont','hard');
+%% Check CRC
+checkMSG = decodeBIT(TailBits+1:end)
+checkCRC = decodeBIT(end-15:end);
+Crc_ui16LookupTable=[0,4129,8258,12387,16516,20645,24774,28903,33032,37161,41290,45419,49548,...
+    53677,57806,61935,4657,528,12915,8786,21173,17044,29431,25302,37689,33560,45947,41818,54205,...
+    50076,62463,58334,9314,13379,1056,5121,25830,29895,17572,21637,42346,46411,34088,38153,58862,...
+    62927,50604,54669,13907,9842,5649,1584,30423,26358,22165,18100,46939,42874,38681,34616,63455,...
+    59390,55197,51132,18628,22757,26758,30887,2112,6241,10242,14371,51660,55789,59790,63919,35144,...
+    39273,43274,47403,23285,19156,31415,27286,6769,2640,14899,10770,56317,52188,64447,60318,39801,...
+    35672,47931,43802,27814,31879,19684,23749,11298,15363,3168,7233,60846,64911,52716,56781,44330,...
+    48395,36200,40265,32407,28342,24277,20212,15891,11826,7761,3696,65439,61374,57309,53244,48923,...
+    44858,40793,36728,37256,33193,45514,41451,53516,49453,61774,57711,4224,161,12482,8419,20484,...
+    16421,28742,24679,33721,37784,41979,46042,49981,54044,58239,62302,689,4752,8947,13010,16949,...
+    21012,25207,29270,46570,42443,38312,34185,62830,58703,54572,50445,13538,9411,5280,1153,29798,...
+    25671,21540,17413,42971,47098,34713,38840,59231,63358,50973,55100,9939,14066,1681,5808,26199,...
+    30326,17941,22068,55628,51565,63758,59695,39368,35305,47498,43435,22596,18533,30726,26663,6336,...
+    2273,14466,10403,52093,56156,60223,64286,35833,39896,43963,48026,19061,23124,27191,31254,2801,6864,...
+    10931,14994,64814,60687,56684,52557,48554,44427,40424,36297,31782,27655,23652,19525,15522,11395,...
+    7392,3265,61215,65342,53085,57212,44955,49082,36825,40952,28183,32310,20053,24180,11923,16050,3793,7920];
+
+ui16RetCRC16 = hex2dec('FFFF');
+for i=1:length(checkMSG)
+    ui8LookupTableIndex = bitxor(checkMSG(i),uint8(bitshift(ui16RetCRC16,-8)));
+    ui16RetCRC16 = bitxor(Crc_ui16LookupTable(double(ui8LookupTableIndex)+1),mod(bitshift(ui16RetCRC16,8),65536));
+end
+
+crc=dec2hex(ui16RetCRC16);%hex
+b = dec2bin(ui16RetCRC16);%bin
+checkCRCshort = double((dec2bin(ui16RetCRC16))-48);
+z = zeros(1,16);
+for i = 1 : length(z)
+    if length(checkCRCshort)<16
+        CRCa = [z(1:(end-length(checkCRCshort))),checkCRCshort(1:end)]
+    end
+    if length(checkCRCshort)==16
+        CRCa = [checkCRCshort(1:end)]
+    end
+end
+clear ui8LookupTableIndex
+clear ui16RetCRC16
+clear Crc_ui16LookupTable
+clear checkCRCshort
+clear z
+
+
+
+%% Plots
+scatterplot(outmod);
+grid on
+xlabel('Re')
+ylabel('Im')
+figure
+plot(abs(SpecOFDM));
+figure
+plot(abs(TimeFFT));
+scatterplot(SpecOFDM1);
+figure
+plot(1:length(TimeFFT),abs(TimeFFT));
+figure
+plot(outdemod);
+scatterplot(outdemod);
+%% Checking results
+a = [BITunited((1:length(decodeBIT)-TailBits))];
+b = [decodeBIT(TailBits+1:length(BITunited))];
+CheckRate = a/b;
+Check(1,:) = [BITunited((1:length(decodeBIT)-TailBits))];
+Check(2,:) = [decodeBIT(TailBits+1:length(BITunited))];
+%% clear
+clear ans
+clear b
+clear B
+clear BIT
+clear C
+clear DEInterleaving
+clear i
+clear inter
+clear j
+clear Jpuncturing
+clear k
+clear n
+clear Noise
+clear o
+clear OPF
+clear outdemod
+clear outmod
+clear SpecOFDM
+clear SpecOFDM1
+clear y
+clear trel
+clear TimeFFT
+clear z
+clear Z
+clear z1
+clear Z1
+clear z2
+clear zer16x28
+clear zero
+clear tblen
+clear checkCRCshort
+% clear CRCa
+clear checkMSG
+clear checkCRC
+
+##### SOURCE END #####
+--></body></html>
